@@ -6,3 +6,7 @@ Train=0.5032 | Val=0.6699 | Acc=0.609 | F1=0.576 | AUC=0.670 | time=10.3s
 liar3_best_model_32f.pt
 Train=0.6222 | Val=0.6218 | ACC=0.719 | F1=0.719 | AUC=0.75
 [Test Result] Acc=0.599, F1=0.648, AUC=0.603
+
+fusion_best_model.pt
+Train=0.4380 | Val=0.7689 | Acc=0.672 | F1=0.644 | AUC=0.710
+[Test Result] Acc=0.624, F1=0.674, AUC=0.677
