@@ -1,0 +1,8 @@
+audio_best_model.pt
+Train=0.5032 | Val=0.6699 | Acc=0.609 | F1=0.576 | AUC=0.670 | time=10.3s
+[Test Result] Acc=0.656, F1=0.707, AUC=0.684
+
+
+liar3_best_model_32f.pt
+Train=0.6222 | Val=0.6218 | ACC=0.719 | F1=0.719 | AUC=0.75
+[Test Result] Acc=0.599, F1=0.648, AUC=0.603
