@@ -10,3 +10,7 @@ Train=0.6222 | Val=0.6218 | ACC=0.719 | F1=0.719 | AUC=0.75
 fusion_best_model.pt
 Train=0.4380 | Val=0.7689 | Acc=0.672 | F1=0.644 | AUC=0.710
 [Test Result] Acc=0.624, F1=0.674, AUC=0.677
+
+liar3_best_model_try3.pt
+Train Loss=0.6381 | Val Loss=0.6167 | Acc=0.634 | F1=0.738 | AUC=0.730
+[Test Result] Acc=0.450, F1=0.593, AUC=0.559
