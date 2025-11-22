@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H:CODER - Video Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">H:CODER</div>
+            <div class="header-buttons">
+                <button class="analyze-button" id="analyzeButton">Segment Video</button>
+                <button class="lie-detector-button" id="lieDetectorButton">Detection</button>
+            </div>
+        </header>
+
+        <div class="left-sidebar panel">
+            <button class="upload-button" id="uploadButton">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                </svg>
+                <span>Upload Video</span>
+            </button>
+            <input type="file" id="fileInput" accept="video/*" style="display: none;" multiple>
+            
+            <div id="videoListContainer" class="video-list-container">
+                <p class="video-list-placeholder">Drag & Drop videos here</p>
+            </div>
+        </div>
+
+        <div class="main-content panel">
+            <div class="video-player-container">
+                <div id="playerPlaceholder" class="player-placeholder">Select a video to play</div>
+                <video id="videoPlayer" style="display:none;" controls crossorigin="anonymous"></video>
+            </div>
+            
+            <div class="edit-controls-wrapper" id="editControlsWrapper" style="display:none;">
+
+                <div class="timeline-scrubber-container" id="timelineScrubberContainer">
+                    <div class="timeline-scrubber" id="timelineScrubber">
+                        <div class="selected-range" id="selectedRange"></div>
+                        
+                        <div class="scrubber-handle start" id="startHandle">
+                            <div class="time-label" id="startTimeLabel">00:00</div>
+                        </div>
+                        
+                        <div class="scrubber-handle end" id="endHandle">
+                            <div class="time-label" id="endTimeLabel">00:00</div>
+                        </div>
+                        
+                        <div class="current-time-marker" id="currentTimeMarker"></div>
+                    </div>
+                </div>
+
+                <div class="segment-controls-container" id="segmentControls">
+                    <button id="playSegmentBtn">▶ Play Selected</button>
+                    <span id="timeDisplay">Selected: 00:00.00 - 00:00.00</span>
+                </div>
+            </div>
+
+            <div class="analysis-results-container">
+                <p id="analysisResult" class="placeholder">Analysis results will be shown here.</p>
+            </div>
+
+        </div>
+
+        <div class="right-sidebar panel">
+            <h3 id="segmentListTitle">Sentence Segments</h3>
+            <div id="clipListContainer" class="clip-list-container">
+                <p class="clip-list-placeholder">Run 'Segment Video' to generate sentence segments.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h2>Analysis Results</h2>
+            <div id="modalBodyContent" class="modal-body"></div>
+        </div>
+    </div>
+    <script src="app.js" defer></script>
+</body>
+</html>
