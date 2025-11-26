@@ -1,7 +1,7 @@
-// DOM이 모두 로드된 후에 스크립트를 실행합니다.
+// DOM이 먼저 로드 후 스크립트 실행
 document.addEventListener('DOMContentLoaded', () => {
 
-    // DOM 요소 선택
+    // DOM 
     const uploadButton = document.getElementById('uploadButton');
     const fileInput = document.getElementById('fileInput');
     const videoListContainer = document.getElementById('videoListContainer');
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalBodyContent = document.getElementById('modalBodyContent');
     const modalCloseBtn = document.querySelector('.modal-close-btn');
 
-    // 서버 연동 : 현재 선택된 비디오의 원본 File 객체를 저장할 변수
+    // 비디오 저장할 변수
     let currentSelectedFile = null;
     
     let allSegments = []; 
@@ -40,12 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrubberWidth = 0;
     let videoDuration = 0;
 
-    // 최대 편집 가능 시간 (60초)
+    // 최대 편집 가능 시간 (60초) : 조정 가능
     const MAX_EDIT_DURATION = 60; 
 
-    // --- 이벤트 리스너 ---
-
-    // 거짓말 탐지
+    // 이벤트 리스너
+    // detection : 거짓말 탐지 버튼
     lieDetectorButton.addEventListener('click', async () => {
         if (!currentSelectedFile) {
             alert("먼저 왼쪽 목록에서 비디오를 선택해주세요.");
@@ -135,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 문장 별 파싱
+    // parsing : 영상 문장 별 분석석
     const clipListContainer = document.getElementById('clipListContainer');
     const analyzeButton = document.getElementById('analyzeButton');
     const segmentListTitle = document.getElementById('segmentListTitle');
@@ -200,15 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 업로드 버튼
     uploadButton.addEventListener('click', () => {
         fileInput.click();
     });
 
+    // 업로드 : 파일 탐색기
     fileInput.addEventListener('change', (event) => {
         handleFiles(event.target.files);
     });
 
-    // 드래그 앤 드롭 이벤트
+    // 업로드 : 드래그 앤 드롭 
     videoListContainer.addEventListener('dragover', (event) => {
         event.preventDefault();
         videoListContainer.classList.add('dragover');
@@ -224,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleFiles(event.dataTransfer.files);
     });
 
-    // 비디오 플레이어 이벤트
+    // 비디오 플레이어
     videoPlayer.addEventListener('loadedmetadata', () => {
         videoDuration = videoPlayer.duration;
         editControlsWrapper.style.display = 'block';
@@ -321,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         videoPlayer.addEventListener('timeupdate', segmentPlayHandler);
     });
 
-    // --- 헬퍼 함수 ---
+    // 헬퍼 함수 
     function handleFiles(files) {
         const placeholder = videoListContainer.querySelector('.video-list-placeholder');
         if (placeholder) placeholder.style.display = 'none';
@@ -492,7 +493,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateScrubberUI();
     }).observe(timelineScrubber);
 
-    // 모달 닫기 이벤트 리스너
     modalCloseBtn.addEventListener('click', () => {
         resultModal.style.display = 'none';
     });
@@ -504,3 +504,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 }); // DOMContentLoaded 종료
+
