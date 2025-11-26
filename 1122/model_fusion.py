@@ -31,14 +31,15 @@ class CorrelationFusion(nn.Module):
         v_feat = F.normalize(v_feat + 1e-8, dim=1)
         a_feat = F.normalize(a_feat + 1e-8, dim=1)
 
-        # 상호작용 (Interaction)
+        # 상호작용 
         interaction = v_feat * a_feat  
         
-        # 결합 (Concatenate)
+        # 결합 
         combined = torch.cat([v_feat, a_feat, interaction], dim=1)
 
         # 판별
         out = self.fc_layers(combined)
         
-        # 🚨 CorrelationFusion은 가중치를 반환하지 않습니다. (호환성을 위해 None 반환)
+        #  CorrelationFusion은 가중치를 반환 X (호환성을 위해 None 반환)
         return out, None, None
+
