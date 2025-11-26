@@ -40,7 +40,7 @@ body, html {
     letter-spacing: -1px;
 }
 
-/* 버튼 그룹 */
+/* 버튼 */
 .header-buttons {
     display: flex;
     gap: 10px;
@@ -78,7 +78,7 @@ body, html {
     background-color: #c82333;
 }
 
-/* 공통 패널 */
+/* 공통 */
 .panel {
     background-color: #1e1e1e;
     border-radius: 8px;
@@ -88,7 +88,7 @@ body, html {
     overflow: hidden;
 }
 
-/* 왼쪽 업로드 패널 */
+/* 왼쪽 업로드 */
 .left-sidebar {
     grid-area: left-sidebar;
     padding: 15px;
@@ -178,7 +178,7 @@ body, html {
     white-space: nowrap; 
 }
 
-/* 메인 영상 영역 */
+/* 메인 비디오 플레이어어 */
 .main-content {
     grid-area: main-content;
     display: grid;
@@ -326,7 +326,7 @@ body, html {
     color: #aaa;
 }
 
-/* 분석 결과 패널 */
+/* 분석 결과 */
 .analysis-results-container {
     padding: 20px;
     overflow-y: auto;
@@ -335,7 +335,7 @@ body, html {
     background-color: #1e1e1e;
 }
 
-/* sentence segement */
+/* parsing 결과 */
 .right-sidebar {
     grid-area: right-sidebar;
     display: flex;
@@ -396,7 +396,6 @@ body, html {
     text-align: left; 
 }
 
-/* 스크롤바 */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -414,7 +413,7 @@ body, html {
     background: #777;
 }
 
-/* 모달 배경 오버레이 */
+/* 모달 배경 */
 .modal-overlay {
     display: none; 
     position: fixed; 
@@ -464,7 +463,6 @@ body, html {
     overflow-y: auto; 
 }
 
-/* app.js에서 생성한 개별 결과 항목 스타일*/
 .modal-body .segment-result-item {
     border-bottom: 1px solid #444; 
     padding: 10px 0;
@@ -472,3 +470,4 @@ body, html {
 .modal-body .segment-result-item:last-child {
     border-bottom: none;
 }
+
