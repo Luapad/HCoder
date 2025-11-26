@@ -12,14 +12,9 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
 import torch.nn.functional as F
 
-
-# =========================================================
-# 0. DeepFace + DBSCAN 기반 인물 클러스터링
-# =========================================================
 def generate_person_ids_from_videos(video_dir, cache_path="liar3_face_cache.json"):
-    # 이 함수는 DeepFace의 'represent' (임베딩) 기능을 사용하므로 수정 없음
     if os.path.exists(cache_path):
-        print(f"[INFO] 캐시 파일 {cache_path} 발견 → 인물 식별 단계 건너뜀")
+        print(f"[INFO] 캐시 파일 {cache_path} 존재하므로 인물 식별 단계 건너뜀")
         with open(cache_path, "r", encoding="utf-8") as f:
             cache = json.load(f)
         return cache["person_id_map"], cache["n_persons"]
@@ -27,9 +22,9 @@ def generate_person_ids_from_videos(video_dir, cache_path="liar3_face_cache.json
     embeddings, video_files = [], []
     video_list = [f for f in os.listdir(video_dir) if f.endswith(".mp4")]
 
-    print(f"[INFO] 총 {len(video_list)}개 영상에서 얼굴 임베딩 추출 중...")
+    print(f"[INFO] 총 {len(video_list)}개 영상에서 얼굴 임베딩 추출 중")
 
-    for vf in tqdm(video_list, desc="DeepFace Embedding"):
+    for vf in tqdm(video_list, desc="DeepFace Embedding"): 
         path = os.path.join(video_dir, vf)
         try:
             cap = cv2.VideoCapture(path)
@@ -37,7 +32,7 @@ def generate_person_ids_from_videos(video_dir, cache_path="liar3_face_cache.json
             if total <= 0:
                 cap.release()
                 continue
-
+            # 영상 앞/중간/뒤 에서 5개 프레임만 샘플링
             idxs = np.linspace(0, total - 1, 5).astype(int)
             for idx in idxs:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
@@ -45,8 +40,7 @@ def generate_person_ids_from_videos(video_dir, cache_path="liar3_face_cache.json
                 if not ret:
                     continue
 
-                # ★★★ 참고: 'represent'는 'extract_faces'와 다름 ★★★
-                # 임베딩 추출은 detector_backend='opencv'가 기본이며 잘 동작함
+                # DeepFace 임베딩
                 result = DeepFace.represent(frame, model_name="Facenet", enforce_detection=False)
 
                 if isinstance(result, list) and len(result) > 0:
@@ -55,22 +49,24 @@ def generate_person_ids_from_videos(video_dir, cache_path="liar3_face_cache.json
                     video_files.append(vf)
                     break
             cap.release()
+            
         except Exception as e:
             print(f"[WARN] {vf} 처리 중 오류: {e}")
 
     print(f"[INFO] 임베딩 추출 성공한 영상 수: {len(embeddings)} / {len(video_list)}")
 
     if len(embeddings) == 0:
-        raise RuntimeError("❌ DeepFace가 어떤 영상에서도 얼굴을 찾지 못했습니다.")
+        raise RuntimeError("DeepFace가 어떤 영상에서도 얼굴을 찾지 못했습니다.")
 
-    print("[INFO] DBSCAN으로 인물 클러스터링 중...")
+    print("[INFO] DBSCAN으로 인물 클러스터링 중")
+    # eps: 얼굴 임베딩 거리 기준
     cluster = DBSCAN(eps=0.3, min_samples=2, metric='cosine').fit(embeddings)
-    labels = cluster.labels_
+    labels = cluster.labels_ # 클러스터 라벨 (동일 인물은 같은 라벨로)
 
     person_id_map = {}
     noise_id_counter = max(labels) + 1 if len(labels) > 0 else 0
     for vf, pid in zip(video_files, labels):
-        if pid == -1:
+        if pid == -1:            # noise는 새로운 ID 부여여
             pid = noise_id_counter
             noise_id_counter += 1
         person_id_map[vf] = int(pid)
@@ -80,20 +76,10 @@ def generate_person_ids_from_videos(video_dir, cache_path="liar3_face_cache.json
     with open(cache_path, "w", encoding="utf-8") as f:
         json.dump({"person_id_map": clean_map, "n_persons": int(n_persons)}, f, indent=2)
 
-    print(f"[INFO] 인물 {n_persons}명 식별 완료 → {cache_path}")
+    print(f"[INFO] 인물 {n_persons}명 식별 완료 -> {cache_path}")
     return clean_map, n_persons
 
-
-# =========================================================
-# 1. 영상 → 얼굴 crop (★★★ CV2 직접 탐지 ★★★)
-# =========================================================
 def video_to_npy(video_path, save_path, face_cascade, num_frames=32, size=112):
-    """
-    개선사항 (데이터 다양화 없음):
-      - scaleFactor/minNeighbors 완화 → 검출 민감도 증가
-      - 얼굴 탐지 실패 시 대비: 최근 성공 얼굴 + CLAHE 밝기 보정
-      - 순차적 프레임 샘플링 (랜덤 없음)
-    """
     if os.path.exists(save_path):
         return True
 
@@ -103,7 +89,6 @@ def video_to_npy(video_path, save_path, face_cascade, num_frames=32, size=112):
         cap.release()
         return False
 
-    # 프레임을 균등 분포로 샘플링
     idxs = np.linspace(0, total - 1, num_frames).astype(int)
 
     frames = []
@@ -117,14 +102,12 @@ def video_to_npy(video_path, save_path, face_cascade, num_frames=32, size=112):
             fail_count += 1
             continue
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # 밝기/조명 불균형 보정 (CLAHE)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         gray = clahe.apply(gray)
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # 검출 민감도 약간 완화
         faces = face_cascade.detectMultiScale(
             gray,
             scaleFactor=1.05,
@@ -163,12 +146,6 @@ def video_to_npy(video_path, save_path, face_cascade, num_frames=32, size=112):
 
     return True
 
-
-
-# =========================================================
-# 2. Person-based Split + CSV 생성 (★★★ 수정됨 ★★★)
-# =========================================================
-# ★★★ face_cascade 인자 추가 ★★★
 def create_person_split(video_dir, person_id_map, face_cascade, output_root="liar3_dataset", seed=42):
     random.seed(seed)
     os.makedirs(output_root, exist_ok=True)
@@ -204,30 +181,23 @@ def create_person_split(video_dir, person_id_map, face_cascade, output_root="lia
                 src_path = os.path.join(video_dir, vf)
                 dst_path = os.path.join(split_dir, npy_name)
 
-                # ★★★ face_cascade를 인자로 전달 ★★★
                 ok = video_to_npy(src_path, dst_path, face_cascade, num_frames=32, size=112)
 
                 if ok:
                     label = 1 if "lie" in vf.lower() else 0
                     writer.writerow({"filename": npy_name, "label": label})
                 else:
-                    failed_conversions += 1  # 이 로직은 거의 실행되지 않음 (캡처 실패 등)
+                    failed_conversions += 1  
 
-        print(f"[INFO] {split} set 생성 완료 → {len(pids)}명, CSV: {csv_path}")
+        print(f"[INFO] {split} set 생성 완료 -> {len(pids)}명, CSV: {csv_path}")
         if failed_conversions > 0:
             print(f"[WARN] {split} 세트에서 영상 파일 자체를 읽지 못해 건너뛴 영상: {failed_conversions}개")
-
-
-# =========================================================
-# 3. Tiny3DConvNet 정의
-# =========================================================
 
 
 class TinyRes3D(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # (3x1x1 + 1x3x3) 형태의 R(2+1)D 블록
         def r2p1d_block(in_c, out_c):
             return nn.Sequential(
                 nn.Conv3d(in_c, out_c, kernel_size=(3,1,1), padding=(1,0,0)),
@@ -236,12 +206,10 @@ class TinyRes3D(nn.Module):
                 nn.ReLU(inplace=True)
             )
 
-        # 기본 블록들
         self.block1 = r2p1d_block(3, 32)
         self.block2 = r2pp1d_block(32, 64)
         self.block3 = r2p1d_block(64, 128)
 
-        # residual channel matching
         self.res_proj1 = nn.Conv3d(32, 64, kernel_size=1)
         self.res_proj2 = nn.Conv3d(64, 128, kernel_size=1)
 
@@ -250,16 +218,11 @@ class TinyRes3D(nn.Module):
         self.dropout = nn.Dropout(0.3)
         self.fc = nn.Linear(128, 1)
 
-    # ---------------------------------------------------
-    #  feature 추출용 함수 (Fusion에서 사용)
-    # ---------------------------------------------------
     def forward_features(self, x):
-        # Block 1
         x = self.block1(x)
         res1 = x
         x = self.pool(x)
 
-        # Block 2
         x = self.block2(x)
         res1_down = F.interpolate(res1, size=x.shape[2:], mode="trilinear", align_corners=False)
         res1_down = self.res_proj1(res1_down)
@@ -267,34 +230,25 @@ class TinyRes3D(nn.Module):
         res2 = x
         x = self.pool(x)
 
-        # Block 3
         x = self.block3(x)
         res2_down = F.interpolate(res2, size=x.shape[2:], mode="trilinear", align_corners=False)
         res2_down = self.res_proj2(res2_down)
         x = x + res2_down
 
-        # Global pooling
-        x = self.global_pool(x)     # (B,128,1,1,1)
-        x = x.view(x.size(0), -1)   # (B,128)
+        x = self.global_pool(x)     
+        x = x.view(x.size(0), -1)   
 
-        # 안정화 패치 (NaN → 0, Inf clamp)
         x = torch.nan_to_num(x)
         x = x.clamp(min=-3000, max=3000)
 
         return x
 
-    # ---------------------------------------------------
-    # 일반 forward (sigmoid까지)
-    # ---------------------------------------------------
     def forward(self, x):
         feat = self.forward_features(x)
         feat = self.dropout(feat)
         out = self.fc(feat)
         return torch.sigmoid(out)
 
-# =========================================================
-# 4. Dataset + 학습 루프 (tqdm 포함)
-# =========================================================
 class LieDataset(Dataset):
     def __init__(self, data_dir, label_csv):
         self.data_dir = data_dir
@@ -311,7 +265,6 @@ class LieDataset(Dataset):
             arr = np.load(os.path.join(self.data_dir, fname))
         except Exception as e:
             print(f"Error loading {fname}: {e}")
-            # 에러 발생 시 검은 화면 반환
             arr = np.zeros((32, 112, 112, 3), dtype=np.uint8)
 
         arr = np.transpose(arr, (3, 0, 1, 2))  # (C, T, H, W)
@@ -356,39 +309,29 @@ def evaluate(model, loader, criterion, device, desc="Validating"):
     return total_loss / len(loader.dataset), acc, f1, auc
 
 
-# =========================================================
-# 5. Main 실행 루프 (★★★ 수정됨 ★★★)
-# =========================================================
 def main():
     video_dir = "data"
     cache_path = "liar3_face_cache.json"
     dataset_root = "liar3_dataset"
 
-    # STEP 1: 인물 식별 (캐시 재사용)
-    print("[STEP 1] 인물 식별 중...")
+    print("[STEP 1] 인물 식별 중")
     person_id_map, n_persons = generate_person_ids_from_videos(video_dir, cache_path)
 
-    # ★★★ CV2 탐지기 로드 ★★★
-    print("[INFO] CV2 Haar Cascade 탐지기 로드 중...")
-    # cv2.data.haarcascades는 OpenCV가 설치된 경로의 xml 파일들을 가리킴
+    print("[INFO] CV2 Haar Cascade 탐지기 로드 중")
     cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
     if not os.path.exists(cascade_path):
-        print(f"❌ CV2 캐스케이드 파일 없음: {cascade_path}")
-        print("OpenCV 설치가 잘못되었을 수 있습니다. (예: pip install opencv-python-headless)")
+        print(f"CV2 캐스케이드 파일 없음: {cascade_path}")
         return
     face_cascade = cv2.CascadeClassifier(cascade_path)
-    print("[INFO] 탐지기 로드 완료.")
+    print("[INFO] 탐지기 로드 완료")
 
-    # STEP 2: 데이터셋 생성 (캐시 재사용)
-    print("[STEP 2] 데이터셋 생성 중...")
+    print("[STEP 2] 데이터셋 생성 중")
     if os.path.exists(os.path.join(dataset_root, "train_labels.csv")):
-        print(f"[INFO] {dataset_root} 이미 존재 → 변환 생략")
+        print(f"[INFO] {dataset_root} 이미 존재하므로 변환 생략")
     else:
-        # ★★★ face_cascade를 인자로 전달 ★★★
         create_person_split(video_dir, person_id_map, face_cascade, dataset_root)
 
-    # STEP 3: 학습
-    print("[STEP 3] Tiny3D 학습 시작...")
+    print("[STEP 3] Tiny3D 학습 시작")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     train_set = LieDataset(f"{dataset_root}/train", f"{dataset_root}/train_labels.csv")
@@ -406,7 +349,6 @@ def main():
     best_auc = 0
     log_file = open("liar3_training_log.txt", "w")
 
-    # 모델 파일명
     model_save_path = "liar3_best_model_try3.pt"
 
     for epoch in range(1, 81):
@@ -425,11 +367,11 @@ def main():
 
     log_file.close()
 
-    print("\n[STEP 4] 테스트 세트 평가 중...")
+    print("\n[STEP 4] 테스트 세트 평가 중")
     try:
         model.load_state_dict(torch.load(model_save_path))
     except FileNotFoundError:
-        print(f"❌ 저장된 모델({model_save_path})을 찾을 수 없습니다. 학습이 실패했을 수 있습니다.")
+        print(f"저장된 모델({model_save_path})을 찾을 수 없습니다")
         return
 
     test_loss, test_acc, test_f1, test_auc = evaluate(model, test_loader, criterion, device, desc="Testing")
